@@ -232,10 +232,23 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 })
 
 --- Open the file tree automatically on startup
+local function open_nvim_tree(data)
+  -- buffer is a real file on the disk
+  local real_file = vim.fn.filereadable(data.file) == 1
+
+  -- buffer is a [No Name]
+  local no_name = data.file == '' and vim.bo[data.buf].buftype == ''
+
+  if not real_file and not no_name then
+    return
+  end
+
+  -- open the tree, find the file but don't focus it
+  require('nvim-tree.api').tree.toggle { focus = false, find_file = true }
+end
+
 vim.api.nvim_create_autocmd('VimEnter', {
-  callback = function()
-    vim.cmd 'NvimTreeOpen'
-  end,
+  callback = open_nvim_tree,
 })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
@@ -334,6 +347,32 @@ require('lazy').setup({
     ---@module "ibl"
     ---@type ibl.config
     opts = {},
+  },
+
+  --- Sonarqube plugin
+  {
+    'iamkarasik/sonarqube.nvim',
+    config = function()
+      local extension_path = vim.fn.stdpath 'data' .. '/mason/packages/sonarlint-language-server/extension'
+      require('sonarqube').setup {
+        lsp = {
+          cmd = {
+            vim.fn.exepath 'java',
+            '-jar',
+            extension_path .. '/server/sonarlint-ls.jar',
+            '-stdio',
+            '-analyzers',
+            extension_path .. '/analyzers/sonargo.jar',
+            extension_path .. '/analyzers/sonarhtml.jar',
+            extension_path .. '/analyzers/sonarjava.jar',
+            extension_path .. '/analyzers/sonarjs.jar',
+            extension_path .. '/analyzers/sonarpython.jar',
+            extension_path .. '/analyzers/sonartext.jar',
+            extension_path .. '/analyzers/sonarxml.jar',
+          },
+        },
+      }
+    end,
   },
 
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
